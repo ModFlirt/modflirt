@@ -22,10 +22,12 @@ cloudinary.config({
 });
 
 app.use(helmet());
-// CORS open — same server serves frontend so no cross-origin issues
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Required for Railway — tells Express to trust the proxy
+app.set('trust proxy', 1);
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
