@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ModFlirt — Admin</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#020617;color:#fff;font-family:system-ui,sans-serif;min-height:100vh}
+    .center{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+    .card{background:#0f172a;border:1px solid #1e293b;border-radius:1rem;padding:2.5rem;width:100%;max-width:360px;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,.5)}
+    .logo{width:48px;height:48px;background:#db2777;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.25rem;margin:0 auto 1rem;color:#fff}
+    h1{font-size:1.5rem;font-weight:900;margin-bottom:.25rem}
+    .sub{color:#94a3b8;font-size:.875rem;margin-bottom:1.5rem}
+    input[type=password],input[type=text]{width:100%;padding:.75rem 1rem;border-radius:.75rem;background:#1e293b;border:1px solid #334155;color:#fff;font-size:.875rem;outline:none;margin-bottom:.75rem;display:block}
+    input:focus{border-color:#db2777;box-shadow:0 0 0 2px rgba(219,39,119,.3)}
+    .btn{width:100%;background:#db2777;color:#fff;font-weight:700;padding:.75rem;border-radius:.75rem;border:none;cursor:pointer;font-size:.875rem}
+    .btn:hover{background:#be185d}
+    .btn-sm{padding:.4rem .75rem;border-radius:.5rem;border:none;cursor:pointer;font-size:.75rem;font-weight:700}
+    .btn-outline{background:transparent;color:#94a3b8;border:1px solid #334155}
+    .btn-outline:hover{color:#fff}
+    .btn-red{background:transparent;color:#ef4444;border:1px solid #7f1d1d}
+    .btn-cv{background:#db2777;color:#fff}
+    .btn-cv:hover{background:#be185d}
+    .btn-detail{background:transparent;color:#94a3b8;border:1px solid #334155}
+    .btn-detail:hover{color:#fff}
+    .err{color:#f87171;font-size:.75rem;margin-bottom:.75rem}
+    nav{background:#0f172a;border-bottom:1px solid #1e293b;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+    .nav-l{display:flex;align-items:center;gap:.75rem}
+    .logo-sm{width:36px;height:36px;background:#db2777;border-radius:.625rem;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff}
+    .brand{font-weight:900;font-size:1.1rem}
+    .pink{color:#ec4899}
+    .badge{background:rgba(219,39,119,.15);color:#f472b6;font-size:.7rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;border:1px solid rgba(219,39,119,.3);margin-left:.5rem}
+    .nav-r{display:flex;align-items:center;gap:.75rem}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;padding:1.5rem;max-width:1280px;margin:0 auto}
+    .stat{background:#0f172a;border:1px solid #1e293b;border-radius:.75rem;padding:1rem}
+    .stat-lbl{color:#64748b;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem}
+    .stat-val{font-size:1.875rem;font-weight:900}
+    .cw{color:#fff}.cp{color:#f472b6}.cg{color:#34d399}.cb{color:#60a5fa}
+    .tbl-wrap{padding:0 1.5rem 3rem;max-width:1280px;margin:0 auto}
+    .tbl-box{background:#0f172a;border:1px solid #1e293b;border-radius:1rem;overflow:hidden;overflow-x:auto}
+    table{width:100%;font-size:.8rem;border-collapse:collapse;min-width:800px}
+    thead tr{background:#1e293b}
+    th{padding:.75rem 1rem;text-align:left;color:#64748b;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+    td{padding:.75rem 1rem;border-top:1px solid #1e293b;vertical-align:middle;white-space:nowrap}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .tag{display:inline-block;padding:.2rem .6rem;border-radius:999px;font-size:.7rem;font-weight:700}
+    .tg{background:rgba(52,211,153,.15);color:#34d399}
+    .tr{background:rgba(239,68,68,.15);color:#f87171}
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;align-items:center;justify-content:center;padding:1rem}
+    .modal-bg.open{display:flex}
+    .modal{background:#0f172a;border:1px solid #334155;border-radius:1rem;padding:2rem;max-width:500px;width:100%;max-height:90vh;overflow-y:auto}
+    .mh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem}
+    .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+    .field{background:#1e293b;border-radius:.75rem;padding:.75rem}
+    .flbl{color:#64748b;font-size:.7rem;margin-bottom:.25rem}
+    .fval{color:#fff;font-weight:600;font-size:.875rem}
+    .tblock{background:#1e293b;border-radius:.75rem;padding:.75rem;margin-bottom:.75rem}
+    .tlbl{color:#64748b;font-size:.7rem;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.05em}
+    .tval{color:#e2e8f0;font-size:.875rem;line-height:1.5}
+    .xbtn{background:none;border:none;color:#64748b;font-size:1.5rem;cursor:pointer;line-height:1}
+    .xbtn:hover{color:#fff}
+    .hidden{display:none!important}
+    .cv-link{display:block;width:100%;text-align:center;background:#db2777;color:#fff;font-weight:700;padding:.75rem;border-radius:.75rem;text-decoration:none;margin-top:.75rem;font-size:.875rem}
+    .cv-link:hover{background:#be185d}
+    @media(max-width:768px){.stats{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="center">
+  <div class="card">
+    <div class="logo">MF</div>
+    <h1>ModFlirt Admin</h1>
+    <p class="sub">Enter your admin password to continue</p>
+    <input type="password" id="pwInput" placeholder="Admin password" onkeydown="if(event.key==='Enter')login()"/>
+    <div id="loginErr" class="err hidden">❌ Wrong password. Try again.</div>
+    <button class="btn" onclick="login()">Login</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
+  <nav>
+    <div class="nav-l">
+      <div class="logo-sm">MF</div>
+      <div>
+        <span class="brand">Mod<span class="pink">Flirt</span> Admin</span>
+        <span class="badge" id="totalBadge"></span>
+      </div>
+    </div>
+    <div class="nav-r">
+      <input type="text" id="searchInput" placeholder="Search name, email..." oninput="renderTable()" style="width:220px"/>
+      <button class="btn-sm btn-outline" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-lbl">Total Applicants</div><div class="stat-val cw" id="sTotal">—</div></div>
+    <div class="stat"><div class="stat-lbl">Today</div><div class="stat-val cp" id="sToday">—</div></div>
+    <div class="stat"><div class="stat-lbl">Have Computer</div><div class="stat-val cg" id="sComp">—</div></div>
+    <div class="stat"><div class="stat-lbl">Stable Internet</div><div class="stat-val cb" id="sNet">—</div></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-box">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Email</th><th>Phone</th>
+            <th>Computer</th><th>Internet</th><th>Date Applied</th>
+            <th>CV</th><th>Details</th><th>Delete</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="10" style="text-align:center;padding:3rem;color:#475569">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mh">
+      <h2 id="mName" style="font-size:1.25rem;font-weight:900"></h2>
+      <button class="xbtn" onclick="document.getElementById('modal').classList.remove('open')">&times;</button>
+    </div>
+    <div id="mContent"></div>
+  </div>
+</div>
+
+<script>
+  let allData = [], adminPass = '';
+
+  function login() {
+    adminPass = document.getElementById('pwInput').value.trim();
+    if (!adminPass) return;
+    fetchData();
+  }
+
+  function logout() {
+    adminPass = ''; allData = [];
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('pwInput').value = '';
+    document.getElementById('loginErr').classList.add('hidden');
+  }
+
+  async function fetchData() {
+    try {
+      const res = await fetch(`/api/admin?password=${encodeURIComponent(adminPass)}`);
+      if (res.status === 401) {
+        document.getElementById('loginErr').classList.remove('hidden');
+        return;
+      }
+      const json = await res.json();
+      allData = json.applications || [];
+      document.getElementById('loginErr').classList.add('hidden');
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      updateStats(); renderTable();
+    } catch(e) {
+      alert('Could not connect to backend. Make sure node server.js is running.');
+    }
+  }
+
+  function updateStats() {
+    const today = new Date().toDateString();
+    document.getElementById('sTotal').textContent = allData.length;
+    document.getElementById('sToday').textContent = allData.filter(r => new Date(r.timestamp).toDateString() === today).length;
+    document.getElementById('sComp').textContent = allData.filter(r => r.hasComputer === 'yes').length;
+    document.getElementById('sNet').textContent = allData.filter(r => r.stableInternet === 'yes').length;
+    document.getElementById('totalBadge').textContent = allData.length + ' applicants';
+  }
+
+  function renderTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const list = allData.filter(r =>
+      (r.name||'').toLowerCase().includes(q) ||
+      (r.email||'').toLowerCase().includes(q) ||
+      (r.phone||'').toLowerCase().includes(q)
+    );
+    const tbody = document.getElementById('tableBody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:3rem;color:#475569">No applicants found.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map((r,i) => `
+      <tr>
+        <td style="color:#475569">${i+1}</td>
+        <td style="font-weight:600">${r.name||'—'}</td>
+        <td style="color:#94a3b8">${r.email||'—'}</td>
+        <td style="color:#94a3b8">${r.phone||'—'}</td>
+        <td><span class="tag ${r.hasComputer==='yes'?'tg':'tr'}">${r.hasComputer==='yes'?'✓ Yes':'✗ No'}</span></td>
+        <td><span class="tag ${r.stableInternet==='yes'?'tg':'tr'}">${r.stableInternet==='yes'?'✓ Yes':'✗ No'}</span></td>
+        <td style="color:#64748b;font-size:.75rem">${new Date(r.timestamp).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+        <td>${r.cvUrl?`<a href="${r.cvUrl}" target="_blank" class="btn-sm btn-cv">📄 View CV</a>`:'<span style="color:#475569">No CV</span>'}</td>
+        <td><button class="btn-sm btn-detail" onclick='showModal(${JSON.stringify(r)})'>View All</button></td>
+        <td><button class="btn-sm btn-red" onclick="deleteRecord('${r.id}')">🗑 Delete</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function showModal(r) {
+    document.getElementById('mName').textContent = r.name || 'Applicant';
+    document.getElementById('mContent').innerHTML = `
+      <div class="mgrid">
+        ${f('📧 Email', r.email)}
+        ${f('📱 Phone', r.phone)}
+        ${f('💻 Has Computer', r.hasComputer==='yes'?'✓ Yes':'✗ No')}
+        ${f('🌐 Stable Internet', r.stableInternet==='yes'?'✓ Yes':'✗ No')}
+        ${f('📅 Applied', new Date(r.timestamp).toLocaleString('en-GB'))}
+      </div>
+      ${r.experience?`<div class="tblock"><div class="tlbl">Experience</div><div class="tval">${r.experience}</div></div>`:''}
+      ${r.motivation?`<div class="tblock"><div class="tlbl">Motivation</div><div class="tval">${r.motivation}</div></div>`:''}
+      ${r.cvUrl?`<a href="${r.cvUrl}" target="_blank" class="cv-link">📄 Open Full CV</a>`:''}
+    `;
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function f(label, value) {
+    return `<div class="field"><div class="flbl">${label}</div><div class="fval">${value||'—'}</div></div>`;
+  }
+
+  function closeModal(e) {
+    document.getElementById('modal').classList.remove('open');
+  }
+
+  async function deleteRecord(id) {
+    if (!confirm('Delete this applicant permanently?')) return;
+    try {
+      const res = await fetch(`/api/admin/${id}?password=${encodeURIComponent(adminPass)}`, {method:'DELETE'});
+      const json = await res.json();
+      if (json.success) { allData = allData.filter(r => r.id !== id); updateStats(); renderTable(); }
+    } catch(e) { alert('Delete failed.'); }
+  }
+</script>
+</body>
+</html>
