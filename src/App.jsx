@@ -234,12 +234,12 @@ export default function ModFlirtPortal() {
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider border-b pb-1">4. Document Attachment</h3>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Upload CV / Resume (PDF Only) *</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Upload CV / Resume (PDF or Word) *</label>
               <p className="text-xs text-slate-500 mb-2">Please provide an updated copy of your resume for our validation team to assess background compatibility.</p>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.doc,.docx"
                 required
                 onChange={handleFileChange}
                 className="w-full text-sm text-slate-500 border border-dashed border-slate-300 bg-slate-50 p-4 rounded-xl cursor-pointer"
