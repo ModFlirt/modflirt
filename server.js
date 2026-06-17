@@ -36,6 +36,21 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Per-email rate limit — max 3 submissions per email per 24 hours
+const emailSubmissions = {};
+function isEmailRateLimited(email) {
+    const now = Date.now();
+    const windowMs = 24 * 60 * 60 * 1000; // 24 hours
+    if (!emailSubmissions[email]) {
+        emailSubmissions[email] = [];
+    }
+    // Remove entries older than 24 hours
+    emailSubmissions[email] = emailSubmissions[email].filter(t => now - t < windowMs);
+    if (emailSubmissions[email].length >= 3) return true;
+    emailSubmissions[email].push(now);
+    return false;
+}
+
 // Multer
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -73,7 +88,29 @@ app.post('/api/apply', upload.single('resume'), async (req, res) => {
         const phone     = `${req.body.countryCode || ''} ${req.body.phoneNumber || ''}`.trim() || "No Phone";
         const fullName  = `${firstName} ${lastName}`.trim();
 
+        // Honeypot check — if filled, silently pretend success
+        if (req.body.honeypot && req.body.honeypot.trim() !== "") {
+            console.log(`🍯 Honeypot triggered from IP: ${req.ip}`);
+            return res.status(200).json({ success: true, message: 'Application received! We will be in touch shortly.' });
+        }
+
+        // Per-email rate limiting
+        if (isEmailRateLimited(email)) {
+            return res.status(429).json({ success: false, message: 'This email has already been submitted recently. Please wait before trying again.' });
+        }
+
         if (!req.file) return res.status(400).json({ success: false, message: 'Resume (PDF or Word) is required.' });
+
+        // Parse device info sent from frontend
+        let deviceInfo = {};
+        try {
+            deviceInfo = JSON.parse(req.body.deviceInfo || "{}");
+        } catch (e) {
+            deviceInfo = {};
+        }
+
+        // Capture IP address
+        const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || "Unknown";
 
         const safeName   = `${fullName.replace(/\s+/g, '_')}_Resume_${Date.now()}`;
         const cloudResult = await uploadToCloudinary(req.file.buffer, safeName);
@@ -94,11 +131,20 @@ app.post('/api/apply', upload.single('resume'), async (req, res) => {
             stableInternet: req.body.stableInternet || '',
             cvUrl:          cloudResult.secure_url,
             cloudinaryId:   cloudResult.public_id,
+            // Security & device info
+            ipAddress,
+            device:         deviceInfo.device     || 'Unknown',
+            os:             deviceInfo.os         || 'Unknown',
+            browser:        deviceInfo.browser    || 'Unknown',
+            screenRes:      deviceInfo.screenRes  || 'Unknown',
+            language:       deviceInfo.language   || 'Unknown',
+            timezone:       deviceInfo.timezone   || 'Unknown',
+            platform:       deviceInfo.platform   || 'Unknown',
             timestamp:      new Date().toISOString()
         });
 
         fs.writeFileSync(DB_FILE, JSON.stringify(currentData, null, 2));
-        console.log(`\x1b[32m  ✅ Application stored for: ${fullName}\x1b[0m`);
+        console.log(`\x1b[32m  ✅ Application stored for: ${fullName} | IP: ${ipAddress} | Device: ${deviceInfo.device} | OS: ${deviceInfo.os} | Browser: ${deviceInfo.browser}\x1b[0m`);
         return res.status(200).json({ success: true, message: 'Application received! We will be in touch shortly.' });
 
     } catch (error) {
