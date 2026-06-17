@@ -41,8 +41,13 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'application/pdf') cb(null, true);
-        else cb(new Error('Only PDF files are allowed!'), false);
+        const allowed = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        if (allowed.includes(file.mimetype)) cb(null, true);
+        else cb(new Error('Only PDF or Word files are allowed!'), false);
     }
 });
 
@@ -68,7 +73,7 @@ app.post('/api/apply', upload.single('resume'), async (req, res) => {
         const phone     = `${req.body.countryCode || ''} ${req.body.phoneNumber || ''}`.trim() || "No Phone";
         const fullName  = `${firstName} ${lastName}`.trim();
 
-        if (!req.file) return res.status(400).json({ success: false, message: 'Resume PDF is required.' });
+        if (!req.file) return res.status(400).json({ success: false, message: 'Resume (PDF or Word) is required.' });
 
         const safeName   = `${fullName.replace(/\s+/g, '_')}_Resume_${Date.now()}`;
         const cloudResult = await uploadToCloudinary(req.file.buffer, safeName);
