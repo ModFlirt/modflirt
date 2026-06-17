@@ -1,4 +1,64 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+
+// Device/browser detection helper
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+
+  let device = "Unknown Device";
+  if (/Samsung/i.test(ua)) device = "Samsung";
+  else if (/iPhone/i.test(ua)) device = "iPhone";
+  else if (/iPad/i.test(ua)) device = "iPad";
+  else if (/Pixel/i.test(ua)) device = "Google Pixel";
+  else if (/Huawei/i.test(ua)) device = "Huawei";
+  else if (/Xiaomi|MIUI/i.test(ua)) device = "Xiaomi";
+  else if (/OnePlus/i.test(ua)) device = "OnePlus";
+  else if (/Nokia/i.test(ua)) device = "Nokia";
+  else if (/Motorola|moto/i.test(ua)) device = "Motorola";
+  else if (/LG/i.test(ua)) device = "LG";
+  else if (/Sony/i.test(ua)) device = "Sony";
+  else if (/Windows NT/i.test(ua)) device = "Windows PC";
+  else if (/Macintosh/i.test(ua)) device = "Mac";
+  else if (/Linux/i.test(ua)) device = "Linux PC";
+  else if (/Android/i.test(ua)) device = "Android Device";
+
+  let os = "Unknown OS";
+  if (/Windows NT 10/i.test(ua)) os = "Windows 10/11";
+  else if (/Windows NT 6.3/i.test(ua)) os = "Windows 8.1";
+  else if (/Windows NT 6.1/i.test(ua)) os = "Windows 7";
+  else if (/Mac OS X/i.test(ua)) {
+    const match = ua.match(/Mac OS X ([\d_]+)/);
+    os = match ? "macOS " + match[1].replace(/_/g, ".") : "macOS";
+  }
+  else if (/Android/i.test(ua)) {
+    const match = ua.match(/Android ([\d.]+)/);
+    os = match ? "Android " + match[1] : "Android";
+  }
+  else if (/iPhone OS/i.test(ua)) {
+    const match = ua.match(/iPhone OS ([\d_]+)/);
+    os = match ? "iOS " + match[1].replace(/_/g, ".") : "iOS";
+  }
+  else if (/iPad.*OS/i.test(ua)) {
+    const match = ua.match(/OS ([\d_]+)/);
+    os = match ? "iPadOS " + match[1].replace(/_/g, ".") : "iPadOS";
+  }
+  else if (/CrOS/i.test(ua)) os = "Chrome OS";
+  else if (/Linux/i.test(ua)) os = "Linux";
+
+  let browser = "Unknown Browser";
+  if (/Edg\//i.test(ua)) browser = "Microsoft Edge";
+  else if (/OPR\//i.test(ua)) browser = "Opera";
+  else if (/Chrome/i.test(ua)) browser = "Chrome";
+  else if (/Firefox/i.test(ua)) browser = "Firefox";
+  else if (/Safari/i.test(ua)) browser = "Safari";
+  else if (/MSIE|Trident/i.test(ua)) browser = "Internet Explorer";
+
+  const screenRes = `${window.screen.width}x${window.screen.height}`;
+  const language = navigator.language || "Unknown";
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown";
+  const platform = navigator.platform || "Unknown";
+
+  return { device, os, browser, screenRes, language, timezone, platform };
+}
 
 export default function ModFlirtPortal() {
   const [formData, setFormData] = useState({
@@ -12,8 +72,10 @@ export default function ModFlirtPortal() {
     hasComputer: "",
     stableInternet: "",
     legalAgeConfirm: false,
+    honeypot: "", // hidden field — bots fill this, humans don't
   });
   const [file, setFile] = useState(null);
+  const [fileError, setFileError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
@@ -27,7 +89,33 @@ export default function ModFlirtPortal() {
   };
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+    const selected = e.target.files[0];
+    if (!selected) return;
+
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    const allowedExtensions = [".pdf", ".doc", ".docx"];
+    const ext = "." + selected.name.split(".").pop().toLowerCase();
+
+    if (!allowedTypes.includes(selected.type) && !allowedExtensions.includes(ext)) {
+      setFileError("Only PDF or Word documents (.pdf, .doc, .docx) are allowed.");
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (selected.size > 5 * 1024 * 1024) {
+      setFileError("File size must be under 5MB.");
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setFileError("");
+    setFile(selected);
   };
 
   const isFormValid =
@@ -40,25 +128,33 @@ export default function ModFlirtPortal() {
     formData.hasComputer !== "" &&
     formData.stableInternet !== "" &&
     file !== null &&
-    formData.legalAgeConfirm === true;
+    fileError === "" &&
+    formData.legalAgeConfirm === true &&
+    formData.honeypot === ""; // reject if honeypot filled
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid || isSubmitting) return;
 
+    // Silently reject bots that filled the honeypot
+    if (formData.honeypot !== "") {
+      setStatusMessage("✅ Application received! We will be in touch shortly.");
+      return;
+    }
+
     setIsSubmitting(true);
     setStatusMessage("Transmitting application details securely...");
 
+    const deviceInfo = getDeviceInfo();
+
     const submissionData = new FormData();
     Object.keys(formData).forEach((key) => {
-      submissionData.append(key, formData[key]);
+      if (key !== "honeypot") submissionData.append(key, formData[key]);
     });
     submissionData.append("resume", file);
+    submissionData.append("deviceInfo", JSON.stringify(deviceInfo));
 
     try {
-      // FIX: Use the Vite proxy path (/api/apply) instead of a hardcoded localhost URL.
-      // The vite.config.js proxy forwards this to http://localhost:5000/api/apply.
-      // This also means the app will work in production without changing URLs.
       const response = await fetch("/api/apply", {
         method: "POST",
         body: submissionData,
@@ -79,11 +175,11 @@ export default function ModFlirtPortal() {
           hasComputer: "",
           stableInternet: "",
           legalAgeConfirm: false,
+          honeypot: "",
         });
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
       } else {
-        // FIX: server returns "message" field on errors — was incorrectly reading result.error
         setStatusMessage("❌ " + (result.message || "An error occurred. Please try again."));
       }
     } catch (error) {
@@ -155,6 +251,18 @@ export default function ModFlirtPortal() {
           <div>
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">Onboarding Registration Form</h2>
             <p className="text-sm text-slate-500 mt-1">Provide your verified details below to initialize your moderator account setup.</p>
+          </div>
+
+          {/* Honeypot — hidden from real users, bots fill it */}
+          <div style={{ display: "none" }} aria-hidden="true">
+            <input
+              type="text"
+              name="honeypot"
+              value={formData.honeypot}
+              onChange={handleInputChange}
+              tabIndex="-1"
+              autoComplete="off"
+            />
           </div>
 
           {/* Identity */}
@@ -235,7 +343,7 @@ export default function ModFlirtPortal() {
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider border-b pb-1">4. Document Attachment</h3>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Upload CV / Resume (PDF or Word) *</label>
-              <p className="text-xs text-slate-500 mb-2">Please provide an updated copy of your resume for our validation team to assess background compatibility.</p>
+              <p className="text-xs text-slate-500 mb-2">Please provide an updated copy of your resume for our validation team to assess background compatibility. Max 5MB.</p>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -244,7 +352,8 @@ export default function ModFlirtPortal() {
                 onChange={handleFileChange}
                 className="w-full text-sm text-slate-500 border border-dashed border-slate-300 bg-slate-50 p-4 rounded-xl cursor-pointer"
               />
-              {file && <p className="text-xs text-emerald-600 mt-1 font-semibold">✓ {file.name} selected</p>}
+              {fileError && <p className="text-xs text-red-500 mt-1 font-semibold">⚠ {fileError}</p>}
+              {file && !fileError && <p className="text-xs text-emerald-600 mt-1 font-semibold">✓ {file.name} selected</p>}
             </div>
           </div>
 
