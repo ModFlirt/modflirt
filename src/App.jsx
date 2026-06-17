@@ -87,7 +87,7 @@ export default function ModFlirtPortal() {
         setStatusMessage("❌ " + (result.message || "An error occurred. Please try again."));
       }
     } catch (error) {
-      setStatusMessage("❌ Could not reach the server. Make sure the backend is running (node server.js) in a separate terminal.");
+      setStatusMessage("❌ Something went wrong. Please try again later or contact support.");
     } finally {
       setIsSubmitting(false);
     }
