@@ -39,7 +39,7 @@
     .cw{color:#fff}.cp{color:#f472b6}.cg{color:#34d399}.cb{color:#60a5fa}
     .tbl-wrap{padding:0 1.5rem 3rem;max-width:1280px;margin:0 auto}
     .tbl-box{background:#0f172a;border:1px solid #1e293b;border-radius:1rem;overflow:hidden;overflow-x:auto}
-    table{width:100%;font-size:.8rem;border-collapse:collapse;min-width:800px}
+    table{width:100%;font-size:.8rem;border-collapse:collapse;min-width:900px}
     thead tr{background:#1e293b}
     th{padding:.75rem 1rem;text-align:left;color:#64748b;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
     td{padding:.75rem 1rem;border-top:1px solid #1e293b;vertical-align:middle;white-space:nowrap}
@@ -47,22 +47,26 @@
     .tag{display:inline-block;padding:.2rem .6rem;border-radius:999px;font-size:.7rem;font-weight:700}
     .tg{background:rgba(52,211,153,.15);color:#34d399}
     .tr{background:rgba(239,68,68,.15);color:#f87171}
+    .ty{background:rgba(251,191,36,.15);color:#fbbf24}
     .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;align-items:center;justify-content:center;padding:1rem}
     .modal-bg.open{display:flex}
-    .modal{background:#0f172a;border:1px solid #334155;border-radius:1rem;padding:2rem;max-width:500px;width:100%;max-height:90vh;overflow-y:auto}
+    .modal{background:#0f172a;border:1px solid #334155;border-radius:1rem;padding:2rem;max-width:560px;width:100%;max-height:90vh;overflow-y:auto}
     .mh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem}
     .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+    .mgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:.75rem}
     .field{background:#1e293b;border-radius:.75rem;padding:.75rem}
     .flbl{color:#64748b;font-size:.7rem;margin-bottom:.25rem}
-    .fval{color:#fff;font-weight:600;font-size:.875rem}
+    .fval{color:#fff;font-weight:600;font-size:.875rem;word-break:break-all}
     .tblock{background:#1e293b;border-radius:.75rem;padding:.75rem;margin-bottom:.75rem}
     .tlbl{color:#64748b;font-size:.7rem;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.05em}
     .tval{color:#e2e8f0;font-size:.875rem;line-height:1.5}
+    .section-title{color:#64748b;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;margin:1rem 0 .5rem;font-weight:700}
     .xbtn{background:none;border:none;color:#64748b;font-size:1.5rem;cursor:pointer;line-height:1}
     .xbtn:hover{color:#fff}
     .hidden{display:none!important}
     .cv-link{display:block;width:100%;text-align:center;background:#db2777;color:#fff;font-weight:700;padding:.75rem;border-radius:.75rem;text-decoration:none;margin-top:.75rem;font-size:.875rem}
     .cv-link:hover{background:#be185d}
+    .ip-tag{font-family:monospace;font-size:.75rem;background:#1e293b;padding:.2rem .5rem;border-radius:.375rem;color:#60a5fa}
     @media(max-width:768px){.stats{grid-template-columns:1fr 1fr}}
   </style>
 </head>
@@ -91,7 +95,7 @@
       </div>
     </div>
     <div class="nav-r">
-      <input type="text" id="searchInput" placeholder="Search name, email..." oninput="renderTable()" style="width:220px"/>
+      <input type="text" id="searchInput" placeholder="Search name, email, IP..." oninput="renderTable()" style="width:220px"/>
       <button class="btn-sm btn-outline" onclick="logout()">Logout</button>
     </div>
   </nav>
@@ -109,12 +113,13 @@
         <thead>
           <tr>
             <th>#</th><th>Name</th><th>Email</th><th>Phone</th>
+            <th>Device</th><th>OS</th><th>Browser</th><th>IP Address</th>
             <th>Computer</th><th>Internet</th><th>Date Applied</th>
             <th>CV</th><th>Details</th><th>Delete</th>
           </tr>
         </thead>
         <tbody id="tableBody">
-          <tr><td colspan="10" style="text-align:center;padding:3rem;color:#475569">Loading...</td></tr>
+          <tr><td colspan="14" style="text-align:center;padding:3rem;color:#475569">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -163,7 +168,7 @@
       document.getElementById('dashboard').classList.remove('hidden');
       updateStats(); renderTable();
     } catch(e) {
-      alert('Could not connect to backend. Make sure node server.js is running.');
+      alert('Could not connect to backend.');
     }
   }
 
@@ -181,11 +186,13 @@
     const list = allData.filter(r =>
       (r.name||'').toLowerCase().includes(q) ||
       (r.email||'').toLowerCase().includes(q) ||
-      (r.phone||'').toLowerCase().includes(q)
+      (r.phone||'').toLowerCase().includes(q) ||
+      (r.ipAddress||'').toLowerCase().includes(q) ||
+      (r.device||'').toLowerCase().includes(q)
     );
     const tbody = document.getElementById('tableBody');
     if (!list.length) {
-      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:3rem;color:#475569">No applicants found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:3rem;color:#475569">No applicants found.</td></tr>`;
       return;
     }
     tbody.innerHTML = list.map((r,i) => `
@@ -194,11 +201,15 @@
         <td style="font-weight:600">${r.name||'—'}</td>
         <td style="color:#94a3b8">${r.email||'—'}</td>
         <td style="color:#94a3b8">${r.phone||'—'}</td>
+        <td style="color:#e2e8f0">${r.device||'—'}</td>
+        <td style="color:#94a3b8;font-size:.75rem">${r.os||'—'}</td>
+        <td style="color:#94a3b8;font-size:.75rem">${r.browser||'—'}</td>
+        <td><span class="ip-tag">${r.ipAddress||'—'}</span></td>
         <td><span class="tag ${r.hasComputer==='yes'?'tg':'tr'}">${r.hasComputer==='yes'?'✓ Yes':'✗ No'}</span></td>
         <td><span class="tag ${r.stableInternet==='yes'?'tg':'tr'}">${r.stableInternet==='yes'?'✓ Yes':'✗ No'}</span></td>
         <td style="color:#64748b;font-size:.75rem">${new Date(r.timestamp).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
         <td>${r.cvUrl?`<a href="${r.cvUrl}" target="_blank" class="btn-sm btn-cv">📄 View CV</a>`:'<span style="color:#475569">No CV</span>'}</td>
-        <td><button class="btn-sm btn-detail" onclick='showModal(${JSON.stringify(r)})'>View All</button></td>
+        <td><button class="btn-sm btn-detail" onclick='showModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>View All</button></td>
         <td><button class="btn-sm btn-red" onclick="deleteRecord('${r.id}')">🗑 Delete</button></td>
       </tr>
     `).join('');
@@ -207,13 +218,26 @@
   function showModal(r) {
     document.getElementById('mName').textContent = r.name || 'Applicant';
     document.getElementById('mContent').innerHTML = `
+      <div class="section-title">📋 Contact Info</div>
       <div class="mgrid">
         ${f('📧 Email', r.email)}
         ${f('📱 Phone', r.phone)}
         ${f('💻 Has Computer', r.hasComputer==='yes'?'✓ Yes':'✗ No')}
         ${f('🌐 Stable Internet', r.stableInternet==='yes'?'✓ Yes':'✗ No')}
         ${f('📅 Applied', new Date(r.timestamp).toLocaleString('en-GB'))}
+        ${f('🌍 Timezone', r.timezone||'—')}
       </div>
+
+      <div class="section-title">🔒 Security & Device Info</div>
+      <div class="mgrid">
+        ${f('🌐 IP Address', r.ipAddress||'—')}
+        ${f('📱 Device', r.device||'—')}
+        ${f('💾 OS', r.os||'—')}
+        ${f('🖥 Browser', r.browser||'—')}
+        ${f('📐 Screen Resolution', r.screenRes||'—')}
+        ${f('🗣 Language', r.language||'—')}
+      </div>
+
       ${r.experience?`<div class="tblock"><div class="tlbl">Experience</div><div class="tval">${r.experience}</div></div>`:''}
       ${r.motivation?`<div class="tblock"><div class="tlbl">Motivation</div><div class="tval">${r.motivation}</div></div>`:''}
       ${r.cvUrl?`<a href="${r.cvUrl}" target="_blank" class="cv-link">📄 Open Full CV</a>`:''}
