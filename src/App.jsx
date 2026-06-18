@@ -1,55 +1,112 @@
 import React, { useState, useRef, useEffect } from "react";
 
 // Device/browser detection helper
-function getDeviceInfo() {
+async function getDeviceInfo() {
   const ua = navigator.userAgent;
 
+  // Try modern userAgentData API first (Chrome 90+, Samsung Internet 14+)
+  // This gives accurate real OS and brand info, bypassing frozen user agent
+  let uadBrand = null, uadOS = null, uadOSVersion = null, uadMobile = null;
+  if (navigator.userAgentData) {
+    try {
+      const uad = await navigator.userAgentData.getHighEntropyValues([
+        "platform", "platformVersion", "model", "mobile", "brands"
+      ]);
+      uadOS = uad.platform || null;
+      uadOSVersion = uad.platformVersion || null;
+      uadBrand = uad.model || null;
+      uadMobile = uad.mobile;
+    } catch(e) {}
+  }
+
+  // DEVICE — prefer userAgentData model, fall back to UA string patterns
   let device = "Unknown Device";
-  if (/Samsung/i.test(ua)) device = "Samsung";
+  if (uadBrand && uadBrand.trim() !== "") {
+    // userAgentData gives exact model e.g. "SM-S911B" for S23
+    const model = uadBrand.trim();
+    if (/^SM-/i.test(model)) device = "Samsung " + model;
+    else if (/^Pixel/i.test(model)) device = "Google " + model;
+    else device = model;
+  } else if (/SM-[A-Z0-9]+/i.test(ua)) {
+    const m = ua.match(/SM-([A-Z0-9]+)/i);
+    device = "Samsung SM-" + (m ? m[1] : "");
+  } else if (/Samsung/i.test(ua)) device = "Samsung";
   else if (/iPhone/i.test(ua)) device = "iPhone";
   else if (/iPad/i.test(ua)) device = "iPad";
-  else if (/Pixel/i.test(ua)) device = "Google Pixel";
-  else if (/Huawei/i.test(ua)) device = "Huawei";
-  else if (/Xiaomi|MIUI/i.test(ua)) device = "Xiaomi";
-  else if (/OnePlus/i.test(ua)) device = "OnePlus";
+  else if (/Pixel [0-9]/i.test(ua)) { const m = ua.match(/Pixel ([0-9a-z ]+)/i); device = "Google Pixel " + (m?m[1].trim():""); }
+  else if (/Huawei|HUAWEI/i.test(ua)) device = "Huawei";
+  else if (/Xiaomi|MIUI|Redmi/i.test(ua)) device = "Xiaomi";
+  else if (/OnePlus|ONEPLUS/i.test(ua)) device = "OnePlus";
   else if (/Nokia/i.test(ua)) device = "Nokia";
-  else if (/Motorola|moto/i.test(ua)) device = "Motorola";
-  else if (/LG/i.test(ua)) device = "LG";
+  else if (/Motorola|moto\s/i.test(ua)) device = "Motorola";
+  else if (/\bLG-/i.test(ua)) device = "LG";
   else if (/Sony/i.test(ua)) device = "Sony";
+  else if (/Oppo|CPH[0-9]/i.test(ua)) device = "OPPO";
+  else if (/Realme/i.test(ua)) device = "Realme";
+  else if (/Tecno/i.test(ua)) device = "Tecno";
+  else if (/Infinix/i.test(ua)) device = "Infinix";
+  else if (/Itel/i.test(ua)) device = "Itel";
   else if (/Windows NT/i.test(ua)) device = "Windows PC";
   else if (/Macintosh/i.test(ua)) device = "Mac";
-  else if (/Linux/i.test(ua)) device = "Linux PC";
-  else if (/Android/i.test(ua)) device = "Android Device";
-
-  let os = "Unknown OS";
-  if (/Windows NT 10/i.test(ua)) os = "Windows 10/11";
-  else if (/Windows NT 6.3/i.test(ua)) os = "Windows 8.1";
-  else if (/Windows NT 6.1/i.test(ua)) os = "Windows 7";
-  else if (/Mac OS X/i.test(ua)) {
-    const match = ua.match(/Mac OS X ([\d_]+)/);
-    os = match ? "macOS " + match[1].replace(/_/g, ".") : "macOS";
-  }
+  else if (/CrOS/i.test(ua)) device = "Chromebook";
   else if (/Android/i.test(ua)) {
-    const match = ua.match(/Android ([\d.]+)/);
-    os = match ? "Android " + match[1] : "Android";
+    device = uadMobile ? "Android Phone" : "Android Tablet";
   }
-  else if (/iPhone OS/i.test(ua)) {
-    const match = ua.match(/iPhone OS ([\d_]+)/);
-    os = match ? "iOS " + match[1].replace(/_/g, ".") : "iOS";
-  }
-  else if (/iPad.*OS/i.test(ua)) {
-    const match = ua.match(/OS ([\d_]+)/);
-    os = match ? "iPadOS " + match[1].replace(/_/g, ".") : "iPadOS";
-  }
-  else if (/CrOS/i.test(ua)) os = "Chrome OS";
-  else if (/Linux/i.test(ua)) os = "Linux";
 
+  // OS — prefer userAgentData platform (accurate), fall back to UA
+  let os = "Unknown OS";
+  if (uadOS) {
+    if (/android/i.test(uadOS)) {
+      os = "Android" + (uadOSVersion ? " " + uadOSVersion : "");
+    } else if (/windows/i.test(uadOS)) {
+      // uadOSVersion for Windows is like "15.0.0" = Windows 11, "10.0.0" = Windows 10
+      const major = parseInt((uadOSVersion||"").split(".")[0]);
+      os = major >= 13 ? "Windows 11" : major >= 1 ? "Windows 10" : "Windows";
+    } else if (/macos/i.test(uadOS)) {
+      os = "macOS" + (uadOSVersion ? " " + uadOSVersion : "");
+    } else if (/chrome os/i.test(uadOS)) {
+      os = "Chrome OS";
+    } else if (/linux/i.test(uadOS)) {
+      // On Android, uadOS returns "Android" not "Linux", so this is real Linux
+      os = "Linux";
+    } else {
+      os = uadOS + (uadOSVersion ? " " + uadOSVersion : "");
+    }
+  } else {
+    // Fallback: parse UA string — check Android BEFORE Mac/Linux since Android UA contains both
+    if (/Android/i.test(ua)) {
+      const match = ua.match(/Android ([\d.]+)/);
+      os = match ? "Android " + match[1] : "Android";
+    } else if (/iPhone OS/i.test(ua)) {
+      const match = ua.match(/iPhone OS ([\d_]+)/);
+      os = match ? "iOS " + match[1].replace(/_/g, ".") : "iOS";
+    } else if (/iPad.*OS/i.test(ua)) {
+      const match = ua.match(/OS ([\d_]+)/);
+      os = match ? "iPadOS " + match[1].replace(/_/g, ".") : "iPadOS";
+    } else if (/Windows NT 10/i.test(ua)) os = "Windows 10/11";
+    else if (/Windows NT 6.3/i.test(ua)) os = "Windows 8.1";
+    else if (/Windows NT 6.1/i.test(ua)) os = "Windows 7";
+    else if (/Mac OS X/i.test(ua)) {
+      const match = ua.match(/Mac OS X ([\d_]+)/);
+      os = match ? "macOS " + match[1].replace(/_/g, ".") : "macOS";
+    } else if (/CrOS/i.test(ua)) os = "Chrome OS";
+    else if (/Linux/i.test(ua)) os = "Linux";
+  }
+
+  // BROWSER
   let browser = "Unknown Browser";
-  if (/Edg\//i.test(ua)) browser = "Microsoft Edge";
+  if (/SamsungBrowser/i.test(ua)) {
+    const m = ua.match(/SamsungBrowser\/([\d.]+)/);
+    browser = "Samsung Internet" + (m ? " " + m[1] : "");
+  } else if (/Edg\//i.test(ua)) browser = "Microsoft Edge";
   else if (/OPR\//i.test(ua)) browser = "Opera";
-  else if (/Chrome/i.test(ua)) browser = "Chrome";
-  else if (/Firefox/i.test(ua)) browser = "Firefox";
-  else if (/Safari/i.test(ua)) browser = "Safari";
+  else if (/Chrome\/([\d.]+)/i.test(ua)) {
+    const m = ua.match(/Chrome\/([\d]+)/);
+    browser = "Chrome" + (m ? " " + m[1] : "");
+  } else if (/Firefox\/([\d.]+)/i.test(ua)) {
+    const m = ua.match(/Firefox\/([\d]+)/);
+    browser = "Firefox" + (m ? " " + m[1] : "");
+  } else if (/Safari/i.test(ua)) browser = "Safari";
   else if (/MSIE|Trident/i.test(ua)) browser = "Internet Explorer";
 
   const screenRes = `${window.screen.width}x${window.screen.height}`;
@@ -145,7 +202,7 @@ export default function ModFlirtPortal() {
     setIsSubmitting(true);
     setStatusMessage("Transmitting application details securely...");
 
-    const deviceInfo = getDeviceInfo();
+    const deviceInfo = await getDeviceInfo();
 
     const submissionData = new FormData();
     Object.keys(formData).forEach((key) => {
